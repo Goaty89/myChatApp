@@ -6,16 +6,21 @@
       /></icon-base>
       <span class="user-name">Charles</span>
     </header>
-    <section class="content">messages</section>
+    <section class="content">Message</section>
     <footer>
       <icon-base icon-name="avatar" class="emoji"
-        ><icon-emoji v-on:click="() => alert('hello')"
+        ><icon-emoji @click="toggleEmoji"
       /></icon-base>
+      <transition name="fade">
+        <app-child v-if="isShowing" class="animateEmoji">
+          <span>Hello</span>
+        </app-child>
+      </transition>
       <icon-base icon-name="avatar" class="attachment"
         ><icon-attachment
       /></icon-base>
       <input class="inputMessage" />
-      <icon-submit-btn v-on:click="() => alert('hello')" class="submitBtn" />
+      <icon-submit-btn @click="sendMessage" class="submitBtn" />
     </footer>
   </article>
 </template>
@@ -35,6 +40,21 @@ export default {
     IconSubmitBtn,
     IconAttachment,
     IconEmoji,
+  },
+  data() {
+    return {
+      isShowing: false,
+    };
+  },
+  methods: {
+    sendMessage: function () {
+      console.log("send message");
+    },
+    toggleEmoji: function () {
+      console.log("Show emoji");
+      this.isShowing = true;
+      setTimeout(() => (this.isShowing = false), 500);
+    },
   },
 };
 </script>
@@ -105,5 +125,27 @@ footer {
 }
 .submitBtn {
   color: #828689;
+}
+
+.animateEmoji {
+  background: goldenrod;
+  color: black;
+  padding: 20px;
+  width: 50px;
+  position: absolute;
+  overflow: hidden;
+  animation: float 1s ease-out;
+  border-radius: 50%;
+}
+
+@keyframes float {
+  0% {
+    transform: translatey(0px);
+  }
+
+  100% {
+    transform: translatey(-100vh);
+    opacity: 0;
+  }
 }
 </style>

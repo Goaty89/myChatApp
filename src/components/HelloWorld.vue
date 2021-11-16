@@ -96,7 +96,7 @@
 
 <script>
 export default {
-  name: "HelloWorld",
+  name: "MyChatApp",
   props: {
     msg: String,
   },
