@@ -1,12 +1,34 @@
 <template>
   <article class="layout">
     <header>
-      <icon-base width="40" height="40" icon-name="avatar" class="icon"
-        ><icon-avatar
-      /></icon-base>
-      <span class="user-name">Charles</span>
+      <div class="avatar" v-if="authUser.displayName">
+        <icon-base width="40" height="40" icon-name="avatar" class="icon"
+          ><icon-avatar
+        /></icon-base>
+        <span class="user-name">{{ authUser.displayName }}</span>
+      </div>
+      <login v-if="!authUser.displayName" class="loginBtn" />
     </header>
-    <section class="content">Message</section>
+    <section class="content">
+      <div
+        v-for="message in messages"
+        :key="message.id"
+        :class="
+          message.author === authUser.displayName
+            ? 'outgoing-msg'
+            : 'incoming-msg'
+        "
+      >
+        <span class="right-tail" />
+        <p>{{ message.message }}</p>
+        <span class="time">{{
+          new Date(message.createAt).toLocaleTimeString("en-US", {
+            hour: "2-digit",
+            minute: "2-digit",
+          })
+        }}</span>
+      </div>
+    </section>
     <footer>
       <icon-base icon-name="avatar" class="emoji"
         ><icon-emoji @click="toggleEmoji"
@@ -19,8 +41,14 @@
       <icon-base icon-name="avatar" class="attachment"
         ><icon-attachment
       /></icon-base>
-      <input class="inputMessage" />
-      <icon-submit-btn @click="sendMessage" class="submitBtn" />
+      <input
+        v-model="message"
+        @keyup.enter="saveMessage"
+        type="text"
+        class="inputMessage"
+        placeholder="Type a message"
+      />
+      <icon-submit-btn @click="saveMessage" class="submitBtn" />
     </footer>
   </article>
 </template>
@@ -31,24 +59,40 @@ import IconAvatar from "./assets/icons/avatar.vue";
 import IconSubmitBtn from "./assets/icons/submitBtn.vue";
 import IconAttachment from "./assets/icons/attachment.vue";
 import IconEmoji from "./assets/icons/emoji.vue";
+import DataService from "./services/dataService";
+import Login from "./components/Login.vue";
+import { getAuth, onAuthStateChanged } from "firebase/auth";
 
 export default {
-  name: "App",
+  name: "MyChatApp",
   components: {
     IconBase,
     IconAvatar,
     IconSubmitBtn,
     IconAttachment,
     IconEmoji,
+    Login,
   },
   data() {
     return {
       isShowing: false,
+      message: null,
+      messages: [],
+      authUser: {},
     };
   },
   methods: {
-    sendMessage: function () {
-      console.log("send message");
+    saveMessage: function () {
+      const chatData = {
+        message: this.message,
+        createAt: Date.now(),
+        author: this.authUser.displayName,
+      };
+      DataService.create(chatData);
+      this.message = null;
+    },
+    fetchMessages: function () {
+      DataService.getAll(this.messages);
     },
     toggleEmoji: function () {
       console.log("Show emoji");
@@ -56,11 +100,25 @@ export default {
       setTimeout(() => (this.isShowing = false), 500);
     },
   },
+  created() {
+    const auth = getAuth();
+
+    onAuthStateChanged(auth, (user) => {
+      console.log(`user -=>`, user);
+      if (!user) {
+        this.authUser = {};
+      } else {
+        this.authUser = user;
+      }
+    });
+    this.fetchMessages();
+  },
 };
 </script>
 
 <style>
-body {
+body,
+p {
   padding: 0;
   margin: 0;
 }
@@ -89,13 +147,22 @@ header {
   padding: 16px 10px;
   background-color: #2a2f32;
 }
+
+.avatar {
+  display: flex;
+  align-items: center;
+}
+
 .icon {
   padding-right: 15px;
 }
 
 .content {
-  align-self: flex-end;
+  display: flex;
+  flex-direction: column;
   padding-bottom: 8px;
+  overflow-y: scroll;
+  place-content: flex-end;
 }
 
 footer {
@@ -112,12 +179,7 @@ footer {
   color: #828689;
   /* border-radius: 50%; */
 }
-.emoji {
-  /* background: lightcoral; */
-}
-.attachment {
-  /* background: lightgoldenrodyellow; */
-}
+
 .inputMessage {
   width: 100%;
   border-radius: 20px;
@@ -125,6 +187,11 @@ footer {
 }
 .submitBtn {
   color: #828689;
+  cursor: pointer;
+}
+
+.loginBtn {
+  float: right;
 }
 
 .animateEmoji {
@@ -147,5 +214,46 @@ footer {
     transform: translatey(-100vh);
     opacity: 0;
   }
+}
+
+.outgoing-msg {
+  background: #056162;
+  width: fit-content;
+  border-radius: 7.5px;
+  align-self: end;
+  padding: 6px 7px 8px 9px;
+  display: flex;
+  margin: 0 8px 8px 0;
+}
+
+.incoming-msg {
+  background: #262d31;
+  width: fit-content;
+  border-radius: 7.5px;
+  align-self: start;
+  padding: 6px 7px 8px 9px;
+  display: flex;
+  margin: 0 0 8px 8px;
+}
+
+.right-tail {
+  position: absolute;
+  top: 0;
+  z-index: 100;
+  display: block;
+  width: 8 px;
+  height: 13 px;
+  color: #056162;
+  right: -8px;
+}
+
+.time {
+  height: 15 px;
+  font-size: 11px;
+  line-height: 15px;
+  color: #f1f1f2a1;
+  white-space: nowrap;
+  align-self: flex-end;
+  padding: 10px 8px 0px 10px;
 }
 </style>
