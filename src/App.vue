@@ -28,6 +28,7 @@
           })
         }}</span>
       </div>
+      <InfiniteLoading :messages="history" @infinite="load" />
     </section>
     <footer>
       <icon-base icon-name="avatar" class="emoji"
@@ -62,6 +63,9 @@ import IconEmoji from "./assets/icons/emoji.vue";
 import DataService from "./services/dataService";
 import Login from "./components/Login.vue";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
+// import { ref } from "vue";
+// import InfiniteLoading from "v3-infinite-loading";
+import "v3-infinite-loading/lib/style.css";
 
 export default {
   name: "MyChatApp",
@@ -79,6 +83,8 @@ export default {
       message: null,
       messages: [],
       authUser: {},
+      lastVisible: null,
+      history: [],
     };
   },
   methods: {
@@ -92,12 +98,18 @@ export default {
       this.message = null;
     },
     fetchMessages: function () {
-      DataService.getAll(this.messages);
+      DataService.getAll(this.messages, this.lastVisible);
     },
-    toggleEmoji: function () {
-      console.log("Show emoji");
-      this.isShowing = true;
-      setTimeout(() => (this.isShowing = false), 500);
+    load: async ($state) => {
+      console.log("loading...");
+      this.history = await DataService.getNext(this.lastVisible);
+      try {
+        console.log(`this.lastVisible`, this.lastVisible, history);
+        if (history.length > 0) $state.loaded();
+        else $state.complete();
+      } catch (error) {
+        $state.error();
+      }
     },
   },
   created() {

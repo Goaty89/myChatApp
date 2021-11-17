@@ -4,7 +4,10 @@ import {
   addDoc,
   orderBy,
   query,
+  limit,
   onSnapshot,
+  startAfter,
+  getDocs,
 } from "firebase/firestore";
 
 import { initializeApp } from "firebase/app";
@@ -24,14 +27,33 @@ const db = getFirestore();
 const chatRef = collection(db, "chat");
 
 class DataService {
-  async getAll(messages) {
-    const q = query(chatRef, orderBy("createAt"));
+  async getAll(messages, lastVisible) {
+    const q = query(chatRef, orderBy("createAt"), limit(1));
 
     onSnapshot(q, (snapshot) => {
       snapshot.docChanges().forEach((change) => {
         messages.push({ id: change.doc.id, ...change.doc.data() });
       });
+
+      lastVisible = snapshot.docs[snapshot.docs.length - 1];
+      console.log("last", lastVisible);
     });
+  }
+
+  async getNext(lastVisible) {
+    const qNext = query(
+      chatRef,
+      orderBy("createAt"),
+      limit(1),
+      startAfter(lastVisible)
+    );
+
+    const documentSnapshots = await getDocs(qNext);
+
+    // Get the last visible document
+    const latestResult =
+      documentSnapshots.docs[documentSnapshots.docs.length - 1];
+    console.log("latestResult -=>", latestResult);
   }
 
   async create(data) {
